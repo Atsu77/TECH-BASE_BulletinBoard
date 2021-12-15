@@ -13,7 +13,6 @@
   <div>
     <?php
     include "./operation.php";
-
     $edit_flag = isset($_POST['edit_flag']) ? true : false;
     $dsn = 'mysql:dbname=bulletin_board;host=db;';
     $user = 'atsu';
@@ -23,8 +22,9 @@
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
       PDO::ATTR_ERRMODE => PDO::ERRMODE_WARNING
     ];
-    $tbname = 'tbtest';
-    $pdo = new PDO($dsn, $user, $password, $driver_options);
+    $tb_name = 'tbtest';
+    $post = new Post($dsn, $user, $password, $tb_name);
+
 
     # 新規投稿の場合
     if (
@@ -32,18 +32,10 @@
       && $_POST['action'] == '投稿'
       && !$edit_flag
     ) {
-      try {
-        $name = $_POST['name'];
-        $comment = $_POST['comment'];
-        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare('INSERT INTO tbtest(name, comment, password) VALUES(:name, :comment, :password)');
-        $stmt->bindValue(':name', $name);
-        $stmt->bindValue(':comment', $comment);
-        $stmt->bindValue(':password', $password);
-        $stmt->execute();
-      } catch (PDOException $Exception) {
-        echo_alert("エラー:" . $Exception->getMessage());
-      }
+      $name = $_POST['name'];
+      $comment = $_POST['comment'];
+      $password = $_POST['password'];
+      $post->new_post($name, $comment, $password);
     }
 
 
@@ -51,95 +43,46 @@
     if (isset($_POST['delete_post_num'], $_POST['password'])) {
       $delete_post_num = $_POST['delete_post_num'];
       $password = $_POST['password'];
-      try {
-        $stmt = $pdo->prepare('SELECT password FROM tbtest WHERE id = :delete_post_num');
-        $stmt->bindValue(':delete_post_num', $delete_post_num);
-        $stmt->execute();
-        $res = $stmt->fetch();
-        $confirm_password = $res['password'];
-        if (password_verify($password, $confirm_password)) {
-          $stmt = $pdo->prepare('DELETE FROM tbtest WHERE id = :delete_post_num');
-          $stmt->bindValue(':delete_post_num', $delete_post_num);
-          $stmt->execute();
-        } else {
-          echo_alert('パスワードが間違っています');
-        }
-      } catch (PDOException $Exception) {
-        echo_alert("エラー:" . $Exception->getMessage());
-      }
+      $post->delete_post($delete_post_num, $password);
     }
 
-
-
-    //$matched_post_num = false;
-    //$stmt->bindValue(':name', $name);
-    //$stmt->bindValue(':comment', $comment);
-    //$stmt->bindValue(':password', $password);
-    //if (!$matched_post_num) echo_alert('投稿番号' . $delete_post_num . 'は存在しません');
-    //}
-
-    //# 編集する投稿番号を指定する場合
-    //if (
-    //  isset($_POST['edit_num'], $_POST['password'])
-    //  && $_POST['action'] == '編集'
-    //) {
-    //  $edit_num = $_POST['edit_num'];
-    //  $confirm_password = $_POST['password'];
-    //  $matched_post_num = false;
-    //  foreach ($lines as $line) {
-    //    $post_elements = explode("<>", $line);
-    //    if ($post_elements[0] == $edit_num) {
-    //      $matched_post_num = true;
-    //      if ($confirm_password == end($post_elements)) {
-    //        $edit_flag = true;
-    //        $edit_num = $_POST['edit_num'];
-    //        list($name, $comment) = get_edit_post($lines, $edit_num);
-    //      } else {
-    //        echo_alert('パスワードが間違っています');
-    //      }
-    //    }
-    //  }
-    //  if (!$matched_post_num) echo_alert('投稿番号' . $edit_num . 'は存在しません');
-    //}
-
-    //# 投稿を編集する場合
-    //if (
-    //  isset($_POST['name'], $_POST['comment'])
-    //  && $_POST['action'] == '投稿'
-    //  && $edit_flag
-    //) {
-    //  $edit_post_num = $_POST['edit_post_num'];
-    //  if ($edit_post_num) {
-    //    $post_elements = set_post_elements($edit_post_num);
-    //    edit_post($lines, $edit_post_num, $post_elements);
-    //    $lines = get_file_lines($filename);
-    //  } else {
-    //    echo_alert('投稿の編集に失敗しました');
-    //  }
-    //}
-    //
-
-    // 投稿を表示
-    function indicate_post($pdo){
-      try{
-        $stmt = $pdo->query('SELECT * FROM tbtest');
-        foreach($stmt as $row){
-            echo '<-------------------------------------------><br>';
-            echo '投稿番号'. $row['id']. '<br>';
-            echo '名前'. $row['name']. '<br>';
-            echo 'コメント'. $row['comment']. '<br>';
-            echo '投稿日時'. $row['updated_at']. '<br>';
-        }
-      } catch(PDOException $Exception){
-        echo_alert("エラー:". $Exception->getMessage());
-      }
+    # 編集する投稿番号を指定する場合
+    if (isset($_POST['edit_post_num'], $_POST['password'])
+      && $_POST['action'] == '編集'
+    ) {
+      $edit_post_num = $_POST['edit_post_num'];
+      $password = $_POST['password'];
+      $res = $post->get_edit_element($edit_post_num, $password);
+      list($target_name, $target_comment) = $res;
     }
+
+    # 投稿を編集する場合
+    if (
+      isset($_POST['name'], $_POST['comment'], $_POST['edit_num'])
+      && $_POST['action'] == '投稿'
+    ) {
+      $edit_post_num = $_POST['edit_num'];
+      $name = $_POST['name'];
+      $comment = $_POST['comment'];
+      $post->edit_post($edit_post_num, $name, $comment);
+      $edit_flag = false;
+    }
+    
+
+
     ?>
   </div>
   <form method="post">
-    <label>名前: <input type="text" name="name" placeholder="名前" required value="<?php if (isset($name)) echo $name; ?>"></label>
-    <label>コメント: <input type="text" name="comment" placeholder="コメント" required value="<?php if (isset($name)) echo $comment; ?>"></label>
-    <label>パスワード: <input type="password" name="password" placeholder="パスワード" required></label>
+    <label>名前: <input type="text" name="name" placeholder="名前" required value="<?php if (isset($target_name)) echo $target_name; ?>"></label>
+    <label>コメント: <input type="text" name="comment" placeholder="コメント" required value="<?php if (isset($target_comment)) echo $target_comment; ?>"></label>
+    <?php
+    if ($edit_flag) {
+      echo '<input type="hidden" name="edit_num" value=' . $edit_post_num . '>';
+      //echo '<input type="hidden" name="edit_flag" value="true">';
+    } else {
+      echo '<label>パスワード: <input type="password" name="password" placeholder="パスワード" required></label>';
+    }
+    ?>
     <input type="submit" name="action" value="投稿">
   </form>
 
@@ -148,7 +91,13 @@
     <label>パスワード: <input type="password" name="password" placeholder="パスワード" required></label>
     <input type="submit" name='action' value="削除">
   </form>
-  <?php indicate_post($pdo)?>
+  <form method="post">
+    <label>編集番号指定: <input type="number" name="edit_post_num" min="0" placeholder="投稿番号を記入" required></label>
+    <label>パスワード: <input type="password" name="password" placeholder="パスワード" required></label>
+    <input type="hidden" name="edit_flag" value='true'>
+    <input type="submit" name="action" value="編集">
+  </form>
+  <?php $post->show_post($pdo) ?>
 
 </body>
 
