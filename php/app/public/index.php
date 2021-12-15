@@ -45,24 +45,31 @@
       }
     }
 
-    //# 投稿を削除する場合
-    //if (isset($_POST['delete_post_num'], $_POST['password'])) {
-    //  $delete_post_num = $_POST['delete_post_num'];
-    //  $confirm_password = $_POST['password'];
-    //  $matched_post_num = false;
-    //  foreach ($lines as $line) {
-    //    $post_elements = explode("<>", $line);
-    //    if ($delete_post_num == $post_elements[0]) {
-    //      $matched_post_num = true;
-    //      if ($confirm_password == end($post_elements)) {
-    //        delete_post($lines, $delete_post_num);
-    //        $lines = get_file_lines($filename);
-    //      } else {
-    //        echo_alert('パスワードが間違っています');
-    //      }
-    //    }
-    //  }
-    //  if (!$matched_post_num) echo_alert('投稿番号' . $delete_post_num . 'は存在しません');
+    # 投稿を削除する場合
+    if (isset($_POST['delete_post_num'], $_POST['password'])) {
+      $delete_post_num = $_POST['delete_post_num'];
+      $password = $_POST['password'];
+      $stmt = $pdo->prepare('SELECT password FROM tbtest WHERE id = :delete_post_num');
+      $stmt->bindValue(':delete_post_num', $delete_post_num);
+      $stmt->execute();
+      $res = $stmt->fetch();
+      $confirm_password = $res['password'];
+      if(password_verify($password, $confirm_password)){
+        $stmt = $pdo->prepare('DELETE FROM tbtest WHERE id = :delete_post_num');
+        $stmt->bindValue(':delete_post_num', $delete_post_num);
+        $stmt->execute();
+      } else {
+        echo_alert('パスワードが間違っています');
+      }
+    }
+
+
+      
+      //$matched_post_num = false;
+      //$stmt->bindValue(':name', $name);
+      //$stmt->bindValue(':comment', $comment);
+      //$stmt->bindValue(':password', $password);
+      //if (!$matched_post_num) echo_alert('投稿番号' . $delete_post_num . 'は存在しません');
     //}
 
     //# 編集する投稿番号を指定する場合
@@ -112,6 +119,12 @@
     <label>コメント: <input type="text" name="comment" placeholder="コメント" required value="<?php if (isset($name)) echo $comment; ?>"></label>
     <label>パスワード: <input type="password" name="password" placeholder="パスワード" required></label>
     <input type="submit" name="action" value="投稿">
+  </form>
+
+  <form method="post">
+    <label>削除: <input type="number" name="delete_post_num" min="0" placeholder="投稿番号を記入" required></label>
+    <label>パスワード: <input type="password" name="password" placeholder="パスワード" required></label>
+    <input type="submit" name='action' value="削除">
   </form>
 
 </body>
