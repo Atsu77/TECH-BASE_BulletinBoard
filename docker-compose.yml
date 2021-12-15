@@ -15,7 +15,7 @@ services:
     - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
     - ./db/sql:/docker-entrypoint-initdb.d
     ports:
-    - $DB_PORT:$CONTAINER_PORT
+    - $DB_PORT:$DB_PORT
   app:
     container_name: php
     build:
@@ -23,9 +23,9 @@ services:
       dockerfile: Dockerfile
     tty: true
     volumes:
-      - .:/var/www/html
+      - ./php/app/public:/var/www/html
     ports:
-      - $WEB_PORT:$CONTAINER_PORT
+      - $WEB_PORT:$WEB_PORT
     depends_on:
       - db
   

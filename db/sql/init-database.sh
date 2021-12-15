@@ -3,4 +3,4 @@
 #sleep 90s
 
 #run the setup script to create the DB and the schema in the DB
-mysql --user=$DB_USER --password=$DB_PASSWORD mission4_database < "/docker-entrypoint-initdb.d/create-tables.sql"
+mysql --user=root --password=$MYSQL_ROOT_PASSWORD $MYSQL_DATABASE < "/docker-entrypoint-initdb.d/create-tables.sql"
