@@ -144,3 +144,11 @@ function echo_alert($message)
 	$alert = "<script type='text/javascript'>alert('" . $message . "');</script>";
 	echo $alert;
 }
+
+/**
+ * @brief パスワードをハッシュ化
+ * @params
+ *       $password: パスワード
+ * @returns ハッシュ化されたパスワード 
+ */
+

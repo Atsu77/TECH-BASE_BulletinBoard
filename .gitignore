@@ -2,3 +2,4 @@
 
 # DB
 db/data/*
+php/app/tmp/*
